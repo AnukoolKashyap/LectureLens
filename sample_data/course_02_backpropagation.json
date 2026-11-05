@@ -1,0 +1,73 @@
+{
+  "video_id": "course_02_backpropagation",
+  "url": "local://course_02_backpropagation.json",
+  "title": "Lesson 2 - Backpropagation and the Chain Rule",
+  "author": "Sample course (bundled with the project)",
+  "segments": [
+    {
+      "text": "in the previous lesson we said that the gradient tells us which way is downhill. we did not say how",
+      "start": 0.0,
+      "duration": 8.0
+    },
+    {
+      "text": "to compute it. that is what backpropagation does, and it is the subject of this lesson. backpropagation is the chain",
+      "start": 8.0,
+      "duration": 8.0
+    },
+    {
+      "text": "rule applied systematically, from the output layer backwards to the input layer. you compute the error at the output, then",
+      "start": 16.0,
+      "duration": 8.0
+    },
+    {
+      "text": "you ask how much each weight in the layer before contributed to that error, and you keep pushing that question",
+      "start": 24.0,
+      "duration": 8.0
+    },
+    {
+      "text": "backwards through the network. the reason it is efficient is reuse. the intermediate results you need for one layer are",
+      "start": 32.0,
+      "duration": 8.0
+    },
+    {
+      "text": "exactly the results you already computed for the layer after it, so nothing is calculated twice. without that reuse you",
+      "start": 40.0,
+      "duration": 8.0
+    },
+    {
+      "text": "would need a separate pass for every single weight, which for a modern network is completely impractical. a common confusion",
+      "start": 48.0,
+      "duration": 8.0
+    },
+    {
+      "text": "is between backpropagation and gradient descent. they are not the same thing. backpropagation computes the gradient. gradient descent is what",
+      "start": 56.0,
+      "duration": 8.0
+    },
+    {
+      "text": "uses the gradient to update the weights, and the learning rate is what scales that update. one more practical point",
+      "start": 64.0,
+      "duration": 8.0
+    },
+    {
+      "text": "before we finish. in practice nobody runs this over the whole dataset before taking a step. instead we use stochastic",
+      "start": 72.0,
+      "duration": 8.0
+    },
+    {
+      "text": "gradient descent, estimating the gradient from a small batch of maybe thirty two or sixty four examples and stepping immediately.",
+      "start": 80.0,
+      "duration": 8.0
+    },
+    {
+      "text": "the estimate is noisy but you take thousands of steps instead of one, and the noise actually helps you escape",
+      "start": 88.0,
+      "duration": 8.0
+    },
+    {
+      "text": "shallow local minima.",
+      "start": 96.0,
+      "duration": 8.0
+    }
+  ]
+}

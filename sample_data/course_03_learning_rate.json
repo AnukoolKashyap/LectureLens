@@ -1,0 +1,78 @@
+{
+  "video_id": "course_03_learning_rate",
+  "url": "local://course_03_learning_rate.json",
+  "title": "Lesson 3 - Choosing and Scheduling the Learning Rate",
+  "author": "Sample course (bundled with the project)",
+  "segments": [
+    {
+      "text": "this lesson is entirely about the learning rate, which we have mentioned twice and kept postponing. the learning rate decides",
+      "start": 0.0,
+      "duration": 8.0
+    },
+    {
+      "text": "how far you move along the negative gradient on each step. if it is too small, training crawls and you",
+      "start": 8.0,
+      "duration": 8.0
+    },
+    {
+      "text": "run out of patience or compute budget before the loss comes down. if it is too large, you overshoot the",
+      "start": 16.0,
+      "duration": 8.0
+    },
+    {
+      "text": "valley, bounce from wall to wall, and the loss diverges to infinity. you will see that in your logs as",
+      "start": 24.0,
+      "duration": 8.0
+    },
+    {
+      "text": "nan values appearing. so how do you pick one. the practical answer is a learning rate range test. you start",
+      "start": 32.0,
+      "duration": 8.0
+    },
+    {
+      "text": "with a very small rate, increase it steadily over a few hundred iterations, and plot the loss against the rate.",
+      "start": 40.0,
+      "duration": 8.0
+    },
+    {
+      "text": "the best choice is usually just below the point where the loss starts climbing. after that, use a schedule. it",
+      "start": 48.0,
+      "duration": 8.0
+    },
+    {
+      "text": "is common to start relatively large and decay over training, because early on you want to cover ground quickly and",
+      "start": 56.0,
+      "duration": 8.0
+    },
+    {
+      "text": "later you want to settle into the bottom of the valley rather than bouncing around it. cosine decay and step",
+      "start": 64.0,
+      "duration": 8.0
+    },
+    {
+      "text": "decay are both fine, and the specific schedule matters far less than having one at all. finally, the optimisers. momentum",
+      "start": 72.0,
+      "duration": 8.0
+    },
+    {
+      "text": "keeps a running average of past gradients so you build speed in consistent directions and damp oscillation across a narrow",
+      "start": 80.0,
+      "duration": 8.0
+    },
+    {
+      "text": "valley. rmsprop scales the step per parameter so rarely updated parameters still move. adam combines both, which is why it",
+      "start": 88.0,
+      "duration": 8.0
+    },
+    {
+      "text": "is the default in most codebases. it is not always the best, but it is almost never terrible, and that",
+      "start": 96.0,
+      "duration": 8.0
+    },
+    {
+      "text": "is a good property for a default. that is the end of the course.",
+      "start": 104.0,
+      "duration": 8.0
+    }
+  ]
+}

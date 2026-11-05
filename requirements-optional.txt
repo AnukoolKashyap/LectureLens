@@ -1,0 +1,18 @@
+# Optional extras. The project runs fully without these.
+#
+#   pip install -r requirements-optional.txt
+#
+# Install these SEPARATELY from requirements.txt. If one fails to build, pip
+# aborts the entire command it was part of — which is why these are not mixed
+# in with the required packages.
+
+# rouge-score is the reference ROUGE implementation. Its build needs an older
+# setuptools on some Python versions (3.12+ in particular) and can fail with
+# "Failed building wheel for rouge-score".
+#
+# This is safe to skip. layer9_eval.py contains a self-contained implementation
+# of ROUGE-1, ROUGE-2 and ROUGE-L and switches to it automatically. The only
+# difference is stemming: rouge-score applies a Porter stemmer, the built-in
+# does not, so scores can differ by a few points. `python doctor.py` reports
+# which backend is active, and the figure is labelled in every export.
+rouge-score>=0.1.2

@@ -1,0 +1,34 @@
+# AI-Powered Video Summarization for Smarter Learning
+# 21CSE306P Applied Generative AI — course project
+#
+#   pip install -r requirements.txt
+#   python doctor.py            <- run this next; it checks everything
+#
+# Python 3.9 or newer. Tested on 3.10.
+#
+# Everything below is required. Optional extras are in requirements-optional.txt
+# and are kept separate on purpose: one package that fails to build must not
+# abort the install of the twenty that would have succeeded.
+
+# --- Stage 1: ingestion -----------------------------------------------------
+youtube-transcript-api>=0.6.2
+# Reads a playlist's video list (flat, no media downloaded). Needed only for
+# the --playlist / paste-a-playlist route; pasting the individual video links
+# works without it.
+yt-dlp>=2024.4.9
+
+# --- Stage 3: embedding and vector store ------------------------------------
+sentence-transformers>=2.6.0      # pulls torch and transformers
+chromadb>=0.5.0
+
+# --- Stage 5: summarisation -------------------------------------------------
+# Mistral is called over plain HTTPS with the standard library, so no SDK is
+# needed. python-dotenv only loads the .env file holding the API key.
+python-dotenv>=1.0.0
+
+# --- Stage 6 / UI -----------------------------------------------------------
+streamlit>=1.36.0
+
+# --- Web app (server.py) -----------------------------------------------------
+fastapi>=0.110.0
+uvicorn>=0.29.0

@@ -1,0 +1,68 @@
+{
+  "video_id": "course_01_gradient_descent",
+  "url": "local://course_01_gradient_descent.json",
+  "title": "Lesson 1 - Gradient Descent and the Loss Surface",
+  "author": "Sample course (bundled with the project)",
+  "segments": [
+    {
+      "text": "welcome to the first lesson of this short course on training neural networks. today we only care about one question,",
+      "start": 0.0,
+      "duration": 8.0
+    },
+    {
+      "text": "which is how a network gets to the right numbers for its weights. the answer is gradient descent. start with",
+      "start": 8.0,
+      "duration": 8.0
+    },
+    {
+      "text": "the loss function. the loss is a single number telling you how wrong the network is right now. for regression",
+      "start": 16.0,
+      "duration": 8.0
+    },
+    {
+      "text": "we use mean squared error, which averages the squared differences between prediction and truth. for classification we use cross entropy,",
+      "start": 24.0,
+      "duration": 8.0
+    },
+    {
+      "text": "which punishes a confident wrong answer far more harshly than a hesitant one. now picture every weight as a coordinate",
+      "start": 32.0,
+      "duration": 8.0
+    },
+    {
+      "text": "and the loss as the height of a landscape above those coordinates. training is walking downhill on that landscape until",
+      "start": 40.0,
+      "duration": 8.0
+    },
+    {
+      "text": "you reach a valley. the direction downhill comes from the gradient, which is the vector of partial derivatives of the",
+      "start": 48.0,
+      "duration": 8.0
+    },
+    {
+      "text": "loss with respect to each weight. the gradient points uphill, so we step in the negative gradient direction. the size",
+      "start": 56.0,
+      "duration": 8.0
+    },
+    {
+      "text": "of that step is the learning rate. we will come back to the learning rate properly in lesson three, because",
+      "start": 64.0,
+      "duration": 8.0
+    },
+    {
+      "text": "choosing it badly is the single most common reason training fails. for now just remember that it controls how far",
+      "start": 72.0,
+      "duration": 8.0
+    },
+    {
+      "text": "you move on each step. next lesson we will look at how the gradient is actually computed for a network",
+      "start": 80.0,
+      "duration": 8.0
+    },
+    {
+      "text": "with millions of weights.",
+      "start": 88.0,
+      "duration": 8.0
+    }
+  ]
+}

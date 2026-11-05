@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Summarizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
+      </span>
+      <span class="brand-text">Lecture<b>Lens</b></span>
+    </a>
+    <div class="topbar-right">
+      <span id="model-badge" class="badge"><span class="pulse"></span><span class="badge-text">connecting…</span></span>
+      <button id="theme-btn" class="icon-btn" aria-label="Toggle theme">
+        <svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button id="settings-btn" class="icon-btn" aria-label="Settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      </button>
+    </div>
+    <div id="settings" class="popover glass">
+      <h4>Settings</h4>
+      <label class="field">
+        <span>Use-case profile</span>
+        <select id="profile"></select>
+      </label>
+      <label class="field">
+        <span>Passages per question <output id="topk-out">5</output></span>
+        <input id="topk" type="range" min="1" max="15" value="5">
+      </label>
+      <label class="switch">
+        <input id="offline" type="checkbox"><span class="track"><span class="thumb"></span></span>
+        <span>Offline mode <small>extractive fallback, no model calls</small></span>
+      </label>
+      <label class="field">
+        <span>Reference summary <small>optional, enables ROUGE</small></span>
+        <textarea id="reference" rows="3" placeholder="Paste a human-written summary…"></textarea>
+      </label>
+    </div>
+  </header>
+
+  <!-- Landing ------------------------------------------------------------>
+  <main id="landing" class="landing">
+    <div class="eyebrow reveal" style="--d:0">
+      <span class="spark"></span> RAG pipeline · MiniLM · ChromaDB · Mistral
+    </div>
+    <h1 class="reveal" style="--d:1">
+      Turn any lecture into<br><span class="shine">notes you can talk to.</span>
+    </h1>
+    <p class="lede reveal" style="--d:2">Paste a YouTube link — or a whole playlist — and get a grounded summary, a living timeline and a mind map, then ask questions answered only from the videos.</p>
+
+    <form id="url-form" class="url-form reveal" style="--d:3" autocomplete="off">
+      <span class="url-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+      </span>
+      <input id="url" type="text" aria-label="YouTube URL, playlist, or several links"
+             placeholder="Paste a video link, a playlist, or several links">
+      <button type="submit" class="btn primary" id="go"><span>Summarise</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+    <button class="link-btn reveal" style="--d:4" id="sample-btn" type="button">or try the bundled sample lecture — works offline</button>
+
+    <section id="progress" class="pipeline glass" hidden>
+      <div class="pipe-head">
+        <span id="pipe-label">Starting…</span>
+        <span id="progress-note" class="mono muted">0s</span>
+      </div>
+      <div class="pipe-track"><div id="pipe-fill" class="pipe-fill"></div></div>
+      <ol id="steps" class="pipe-steps"></ol>
+    </section>
+
+    <div id="error" class="error-card" hidden></div>
+
+    <section class="features" id="features">
+      <article class="feature glass reveal" style="--d:5">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+        </div>
+        <h3>Grounded summary</h3>
+        <p>Written only from retrieved transcript passages, with a faithfulness score.</p>
+      </article>
+      <article class="feature glass reveal" style="--d:6">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <h3>Living timeline</h3>
+        <p>Every timestamp is clickable and the timeline follows the video as it plays.</p>
+      </article>
+      <article class="feature glass reveal" style="--d:7">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
+        </div>
+        <h3>Chat with citations</h3>
+        <p>Ask follow-ups; every answer links back to the moment it came from.</p>
+      </article>
+    </section>
+  </main>
+
+  <!-- Workspace ---------------------------------------------------------->
+  <main id="workspace" class="workspace" hidden>
+    <section class="pane-left">
+      <div class="video-wrap enter" style="--d:0">
+        <div id="player"></div>
+        <div id="no-video" class="no-video" hidden>
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4-2.5z" fill="currentColor"/></svg>
+          <span>Local transcript — no video to play</span>
+        </div>
+        <div id="now-playing" class="now-playing" hidden><span class="eq"><i></i><i></i><i></i></span><span id="now-text"></span></div>
+      </div>
+
+      <div class="title-row enter" style="--d:1">
+        <div>
+          <h2 id="title"></h2>
+          <div id="meta" class="meta"></div>
+        </div>
+        <div class="title-actions">
+          <a class="btn ghost sm" href="/api/export/md" download>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Markdown</a>
+          <a class="btn ghost sm" href="/api/export/json" download>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>JSON</a>
+          <button class="btn ghost sm" id="new-btn" type="button">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New video</button>
+        </div>
+      </div>
+
+      <div id="fallback-warning" class="warn-card" hidden>
+        Offline fallback: these sentences were copied from the transcript, not generated by a model.
+      </div>
+
+      <nav class="tabs enter" style="--d:2" role="tablist">
+        <span class="tab-ink" id="tab-ink"></span>
+        <button role="tab" class="tab active" data-tab="summary">Summary</button>
+        <button role="tab" class="tab" data-tab="timeline">Timeline</button>
+        <button role="tab" class="tab" data-tab="mindmap">Mind map</button>
+        <button role="tab" class="tab" data-tab="eval">Evaluation</button>
+        <button role="tab" class="tab" data-tab="sources">Sources</button>
+      </nav>
+
+      <div class="panel" id="tab-summary">
+        <div class="summary-card glass spot">
+          <div class="card-label">Overview</div>
+          <p id="summary-text" class="summary-text"></p>
+        </div>
+        <div class="section-label">Key points</div>
+        <ul id="key-points" class="key-points"></ul>
+      </div>
+
+      <div class="panel" id="tab-timeline" hidden>
+        <ol id="timeline" class="timeline"></ol>
+      </div>
+
+      <div class="panel" id="tab-mindmap" hidden>
+        <div class="mm-wrap glass">
+          <svg id="mm-lines" class="mm-lines" aria-hidden="true"></svg>
+          <div id="mindmap" class="mindmap"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="tab-eval" hidden>
+        <div id="metrics" class="metrics"></div>
+        <p id="rouge-note" class="muted small"></p>
+        <div class="section-label">Safety screens</div>
+        <div id="safety" class="safety"></div>
+        <div id="safety-detail"></div>
+        <div class="section-label">Rate this summary</div>
+        <form id="feedback" class="feedback glass">
+          <div class="stars" id="stars" role="radiogroup" aria-label="Rating"></div>
+          <input id="fb-comment" type="text" placeholder="Comment (optional)">
+          <button class="btn primary sm" type="submit">Submit</button>
+        </form>
+      </div>
+
+      <div class="panel" id="tab-sources" hidden>
+        <p class="muted small" id="sources-note"></p>
+        <div id="sources"></div>
+      </div>
+    </section>
+
+    <aside class="pane-right enter" style="--d:1">
+      <div class="chat glass">
+        <div class="chat-head">
+          <div class="chat-avatar"><span></span></div>
+          <div class="chat-title">
+            <h3>Ask the video</h3>
+            <p class="muted small">Grounded in this transcript only</p>
+          </div>
+          <button class="icon-btn sm" id="clear-chat" type="button" aria-label="Clear chat" title="Clear chat">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+          </button>
+        </div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <div id="suggestions" class="suggestions"></div>
+        <form id="chat-form" class="composer">
+          <textarea id="chat-input" rows="1" placeholder="Ask anything about this video…"></textarea>
+          <button class="send" type="submit" aria-label="Send">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+        </form>
+      </div>
+    </aside>
+  </main>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="https://www.youtube.com/iframe_api" async></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
