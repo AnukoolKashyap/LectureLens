@@ -46,6 +46,15 @@ WEB_DIR = Path(__file__).parent / "web"
 
 app = FastAPI(title="AI-Powered Video Summarization")
 
+
+@app.middleware("http")
+async def _revalidate_ui(request, call_next):
+    """Make browsers re-check the UI files, so an edit shows on a plain reload."""
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
 _current: Dict = {"run": None, "course": None, "profile": "lecture"}
 _pipeline_lock = threading.Lock()
 
@@ -378,12 +387,22 @@ def ask(req: AskRequest) -> Dict:
 
 @app.post("/api/where-is")
 def where_is(req: WhereIsRequest) -> Dict:
-    """Every place a topic is covered across the course."""
-    run = _current_course()
+    """Every place a topic is covered — across the course, or within one video."""
     topic = req.topic.strip()
     if not topic:
         raise HTTPException(status_code=400, detail="Empty topic.")
-    return {"topic": topic, "hits": run.where_is(topic, max(1, min(20, req.limit)))}
+    limit = max(1, min(20, req.limit))
+    course = _current.get("course")
+    if course is not None:
+        return {"topic": topic, "hits": course.where_is(topic, limit)}
+
+    run = _current_run()
+    hits = sorted(retrieve(topic, run.index, top_k=limit), key=lambda h: h.start)
+    return {"topic": topic, "hits": [
+        {"timestamp": h.timestamp, "start": h.start, "score": round(h.final_score, 3),
+         "preview": h.text[:200]}
+        for h in hits
+    ]}
 
 
 @app.post("/api/feedback")

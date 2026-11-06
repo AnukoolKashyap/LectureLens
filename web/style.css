@@ -434,6 +434,34 @@ button, input, select, textarea { font: inherit; color: inherit; }
   transition: transform .3s var(--spring), color .2s;
 }
 .mm-kid:hover { transform: translateX(4px); color: var(--text); }
+.mm-lines path.still { animation: none; stroke-dashoffset: 0; }
+
+/* Clickable nodes */
+.mm-node { cursor: pointer; transition: transform .3s var(--spring), color .2s, opacity .25s, box-shadow .25s; }
+.mm-node:focus-visible { outline: 2px solid var(--a2); outline-offset: 3px; }
+.mm-branch:hover { transform: scale(1.04); }
+.mm-node.selected { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 28px -6px var(--c, var(--a1)); color: var(--text); }
+.mm-wrap.focusing .mm-node:not(.selected):not(.trail) { opacity: .45; }
+.mm-count {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 8px; padding: 0 6px;
+  border-radius: 10px; font-size: .72rem; background: var(--c); color: #fff; vertical-align: middle;
+}
+.mm-branch.folded { border-style: dashed; }
+.mm-kids.collapsed { display: none; }
+
+.mm-card {
+  position: absolute; z-index: 5; width: min(340px, calc(100% - 24px)); padding: 12px 14px; border-radius: 14px;
+  background: var(--glass-strong); border: 1px solid var(--line-strong); box-shadow: var(--shadow);
+  animation: pop .35s var(--spring) both;
+}
+.mm-card-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; padding-right: 22px; position: relative; }
+.mm-card-head strong { font-size: .92rem; }
+.mm-x { position: absolute; top: -4px; right: -6px; border: 0; background: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; line-height: 1; }
+.mm-x:hover { color: var(--text); }
+.mm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.mm-results:not(:empty) { margin-top: 10px; display: grid; gap: 8px; max-height: 220px; overflow-y: auto; }
+.mm-hit { display: flex; gap: 8px; align-items: flex-start; font-size: .8rem; color: var(--muted); }
+.mm-hit .ts { flex-shrink: 0; }
 
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
 .metric {

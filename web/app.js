@@ -516,22 +516,138 @@ function buildMindMap(mm, fallbackTitle) {
     kids: typeof b === "string" ? [] : b.children || [],
   }));
   const rows = Math.max(1, branches.length);
-  let html = `<div class="mm-root" style="grid-row:1 / span ${rows}">${esc(mm.root || fallbackTitle)}</div>`;
+  const node = (topic, extra = "") => `role="button" tabindex="0" data-topic="${esc(topic)}" ${extra}`;
+  const rootName = mm.root || fallbackTitle;
+  let html = `<div class="mm-root mm-node" style="grid-row:1 / span ${rows}" ${node(rootName)}>${esc(rootName)}</div>`;
   branches.forEach((b, i) => {
     const color = BRANCH_COLORS[i % BRANCH_COLORS.length];
     const kids = b.kids.map((k, j) => {
       const m = String(k).match(new RegExp(`^(.*?)\\s*\\(?(${TIME})\\)?$`));
+      const label = m ? m[1] : String(k);
       const body = m ? `${esc(m[1])} ${tsChip(m[2])}` : esc(k);
-      return `<div class="mm-kid pop" style="--i:${i * 2 + j + 6}" data-b="${i}">${body}</div>`;
+      return `<div class="mm-kid mm-node pop" style="--i:${i * 2 + j + 6}" data-b="${i}" ${node(label, `data-parent="${esc(b.name)}"`)}>${body}</div>`;
     }).join("");
-    html += `<div class="mm-branch pop" style="grid-row:${i + 1};--c:${color};--i:${i + 2}" data-b="${i}">${esc(b.name)}</div>`;
-    html += `<div class="mm-kids" style="grid-row:${i + 1}">${kids}</div>`;
+    const count = b.kids.length ? `<span class="mm-count">${b.kids.length}</span>` : "";
+    html += `<div class="mm-branch mm-node pop" style="grid-row:${i + 1};--c:${color};--i:${i + 2}" data-b="${i}" ${node(b.name, `data-kids="${b.kids.length}"`)}>${esc(b.name)}${count}</div>`;
+    html += `<div class="mm-kids" style="grid-row:${i + 1}" data-b="${i}">${kids}</div>`;
   });
   $("#mindmap").innerHTML = html;
   $("#mm-lines").innerHTML = "";
+  closeMindCard();
 }
 
-function drawMindMapLines() {
+// ------------------------------------------------------- mind map actions
+// Clicking a node opens a small card: explain it, quiz on it, find where it
+// is covered, or fold a branch away.
+
+function closeMindCard() {
+  $("#mm-card")?.remove();
+  $$(".mm-node.selected, .mm-node.trail").forEach((n) => n.classList.remove("selected", "trail"));
+  $(".mm-wrap")?.classList.remove("focusing");
+}
+
+function openMindCard(el) {
+  const wasOpen = el.classList.contains("selected");
+  closeMindCard();
+  if (wasOpen) return;
+
+  const topic = el.dataset.topic;
+  const parent = el.dataset.parent;
+  const isBranch = el.classList.contains("mm-branch");
+  const b = el.dataset.b;
+  el.classList.add("selected");
+  if (b !== undefined) {
+    $(".mm-wrap").classList.add("focusing");
+    $$(`.mm-node[data-b="${b}"]`).forEach((n) => n !== el && !n.classList.contains("mm-kid") && n.classList.add("trail"));
+    $(".mm-root")?.classList.add("trail");
+  }
+
+  const wrap = $(".mm-wrap");
+  const card = document.createElement("div");
+  card.id = "mm-card";
+  card.className = "mm-card glass";
+  const folded = isBranch && $(`.mm-kids[data-b="${b}"]`)?.classList.contains("collapsed");
+  card.innerHTML = `
+    <div class="mm-card-head"><strong>${esc(topic)}</strong>${parent ? `<span class="muted small">in ${esc(parent)}</span>` : ""}
+      <button type="button" class="mm-x" aria-label="Close">×</button></div>
+    <div class="mm-actions">
+      <button type="button" class="btn ghost sm" data-act="explain">Explain</button>
+      <button type="button" class="btn ghost sm" data-act="find">Find moments</button>
+      <button type="button" class="btn ghost sm" data-act="quiz">Quiz me</button>
+      ${isBranch && Number(el.dataset.kids) ? `<button type="button" class="btn ghost sm" data-act="fold">${folded ? "Expand" : "Collapse"}</button>` : ""}
+    </div>
+    <div class="mm-results"></div>`;
+  wrap.append(card);
+
+  // Sit just under the node, kept inside the map.
+  const base = wrap.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const left = Math.min(r.left - base.left + wrap.scrollLeft, wrap.scrollWidth - card.offsetWidth - 12);
+  card.style.left = `${Math.max(12, left)}px`;
+  card.style.top = `${r.bottom - base.top + 8}px`;
+
+  card.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (e.target.closest(".mm-x")) return closeMindCard();
+    const act = e.target.closest("[data-act]")?.dataset.act;
+    const where = parent ? `"${topic}" (part of "${parent}")` : `"${topic}"`;
+    if (act === "explain") askFromMap(`Explain ${where} as covered in the video, in simple terms.`);
+    if (act === "quiz") askFromMap(`Give me 3 short quiz questions on ${where}, then the answers with timestamps.`);
+    if (act === "find") findMoments(topic, $(".mm-results", card));
+    if (act === "fold") { toggleBranch(b); closeMindCard(); }
+  });
+}
+
+function askFromMap(question) {
+  closeMindCard();
+  const chat = $(".chat");
+  if (chat) chat.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  send(question);
+}
+
+async function findMoments(topic, box) {
+  box.innerHTML = `<span class="typing"><i></i><i></i><i></i></span>`;
+  try {
+    const r = await (await api("/api/where-is", { topic, limit: 5 })).json();
+    if (!r.hits.length) { box.innerHTML = `<p class="muted small">Not found in the transcript.</p>`; return; }
+    box.innerHTML = r.hits.map((h) => {
+      const chip = h.url
+        ? `<a class="ts" href="${esc(h.url)}" target="_blank" rel="noopener">${esc(h.timestamp)}</a>`
+        : tsChip(h.timestamp);
+      const label = h.video_title ? `<b>V${h.video_index}</b> ${esc(h.video_title)} — ` : "";
+      return `<div class="mm-hit">${chip}<span>${label}${esc(h.preview)}…</span></div>`;
+    }).join("");
+  } catch (e) {
+    box.innerHTML = `<p class="muted small">${esc(e.message)}</p>`;
+  }
+}
+
+function toggleBranch(b) {
+  const kids = $(`.mm-kids[data-b="${b}"]`);
+  const branch = $(`.mm-branch[data-b="${b}"]`);
+  if (!kids || !branch) return;
+  kids.classList.toggle("collapsed");
+  branch.classList.toggle("folded", kids.classList.contains("collapsed"));
+  drawMindMapLines(true);
+}
+
+$("#mindmap").addEventListener("click", (e) => {
+  if (e.target.closest("[data-t]")) return; // timestamp chips keep seeking
+  const el = e.target.closest(".mm-node");
+  if (el) { e.stopPropagation(); openMindCard(el); }
+});
+$("#mindmap").addEventListener("dblclick", (e) => {
+  const el = e.target.closest(".mm-branch");
+  if (el) { e.preventDefault(); closeMindCard(); toggleBranch(el.dataset.b); }
+});
+$("#mindmap").addEventListener("keydown", (e) => {
+  const el = e.target.closest(".mm-node");
+  if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openMindCard(el); }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMindCard(); });
+document.addEventListener("click", (e) => { if (!e.target.closest("#mm-card, .mm-node")) closeMindCard(); });
+
+function drawMindMapLines(instant = false) {
   const wrap = $(".mm-wrap");
   const svg = $("#mm-lines");
   if (!wrap || wrap.offsetParent === null || getComputedStyle(svg).display === "none") return;
@@ -552,10 +668,10 @@ function drawMindMapLines() {
   $$(".mm-branch").forEach((br, i) => {
     const color = BRANCH_COLORS[i % BRANCH_COLORS.length];
     paths.push({ d: curve(pt(root, "r"), pt(br, "l")), color, delay: 150 + i * 90 });
-    $$(`.mm-kid[data-b="${i}"]`).forEach((kid, j) =>
+    $$(`.mm-kids:not(.collapsed) .mm-kid[data-b="${i}"]`).forEach((kid, j) =>
       paths.push({ d: curve(pt(br, "r"), pt(kid, "l")), color, delay: 450 + i * 90 + j * 50 }));
   });
-  svg.innerHTML = paths.map((p) => `<path d="${p.d}" stroke="${p.color}" style="--delay:${p.delay}ms"/>`).join("");
+  svg.innerHTML = paths.map((p) => `<path d="${p.d}" stroke="${p.color}" style="--delay:${instant ? 0 : p.delay}ms"${instant ? ' class="still"' : ""}/>`).join("");
   $$("path", svg).forEach((p) => p.style.setProperty("--len", p.getTotalLength()));
 }
 let resizeTimer;
